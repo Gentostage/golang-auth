@@ -18,12 +18,13 @@ func (r *UserRepository) Create(u *model.User) error {
 	return nil
 }
 
-func (r *UserRepository) Get(u *model.User) error {
+func (r *UserRepository) Get(u *model.User) (*model.User, error) {
+	user := &model.User{}
 	userStorage := r.store.db.Database("auth-go").Collection("users")
-	err := userStorage.FindOne(context.TODO(), u).Decode(&u)
+	err := userStorage.FindOne(context.TODO(), u).Decode(&user)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return user, nil
 
 }

@@ -29,26 +29,31 @@ func newServer(config Config, store store.Store) *server {
 
 func (s *server) configureRoute() {
 	s.router.GET("/user/", func(context *gin.Context) {
-		u := s.store.User()
-		user := &model.User{
-			Email: "example",
+		u := &model.User{}
+		if err := context.BindJSON(&u); err != nil {
+			context.String(http.StatusBadRequest, err.Error())
 		}
-		err := u.Get(user)
+		user, err := s.store.User().Get(u)
 		if err != nil {
-			s.logger.Error(err)
+			s.logger.Info(err)
+			context.String(http.StatusNotFound, err.Error())
+		} else {
+			context.JSON(http.StatusOK, user)
 		}
 
-		context.String(http.StatusOK, "Email."+user.Email)
 	})
-	s.router.GET("/user/create", func(context *gin.Context) {
-		u := s.store.User()
-		user := &model.User{
-			Email: "example",
+	s.router.POST("/user/create", func(context *gin.Context) {
+		user := &model.User{}
+		if err := context.BindJSON(&user); err != nil {
+			context.String(http.StatusBadRequest, err.Error())
 		}
-		err := u.Create(user)
+		err := s.store.User().Create(user)
 		if err != nil {
 			s.logger.Error(err)
+			context.String(http.StatusNotFound, err.Error())
+		} else {
+			context.JSON(http.StatusOK, user)
 		}
-		context.String(http.StatusOK, "Email:"+user.Email)
+
 	})
 }
