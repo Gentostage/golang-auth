@@ -1,6 +1,9 @@
 package apiserver
 
-import "github.com/sirupsen/logrus"
+import (
+	"github.com/Gentostage/golang-auth/internal/app/store/mongostore"
+	"github.com/sirupsen/logrus"
+)
 
 type APIServer struct {
 	config *Config
@@ -15,10 +18,12 @@ func New(config *Config) *APIServer {
 }
 
 func (s *APIServer) Start() error {
-	srv := newServer(s.config)
-	err := srv.router.Run(s.config.BindAddr)
+	store, err := mongostore.NewBD()
 	if err != nil {
-		s.logger.Error(err)
+		return err
 	}
-	return nil
+	srv := newServer(*s.config, store)
+	err = srv.router.Run(s.config.BindAddr)
+
+	return err
 }
