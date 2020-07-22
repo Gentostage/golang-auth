@@ -8,6 +8,7 @@ type UserRepository interface {
 }
 
 type TokenRepository interface {
-	Create(id string, token string) error
-	Get(*model.User) (*model.User, error)
+	Create() error
+	Close() error
+	DeleteAll() error
 }

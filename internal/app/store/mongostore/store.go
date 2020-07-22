@@ -44,12 +44,12 @@ func (s *Store) User() store.UserRepository {
 	return s.userRepository
 }
 
-func (s *Store) Token() store.UserRepository {
-	if s.userRepository != nil {
-		return s.userRepository
+func (s *Store) Token() store.TokenRepository {
+	if s.tokenRepository != nil {
+		return s.tokenRepository
 	}
-	s.userRepository = &UserRepository{
+	s.tokenRepository = &TokenRepository{
 		store: s,
 	}
-	return s.userRepository
+	return s.tokenRepository
 }

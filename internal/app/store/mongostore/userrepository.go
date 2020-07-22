@@ -3,6 +3,7 @@ package mongostore
 import (
 	"context"
 	"github.com/Gentostage/golang-auth/internal/app/model"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type UserRepository struct {
@@ -10,6 +11,7 @@ type UserRepository struct {
 }
 
 func (r *UserRepository) Create(u *model.User) error {
+	u.ID = primitive.NewObjectID()
 	userStorage := r.store.db.Database("auth-go").Collection("users")
 	_, err := userStorage.InsertOne(context.TODO(), u)
 	if err != nil {
