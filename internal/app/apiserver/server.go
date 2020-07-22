@@ -47,12 +47,27 @@ func (s *server) configureRoute() {
 		if err := context.BindJSON(&user); err != nil {
 			context.String(http.StatusBadRequest, err.Error())
 		}
-		err := s.store.User().Create(user)
-		if err != nil {
+		user_temp := &model.User{
+			Email: user.Email,
+		}
+		u, _ := s.store.User().Get(user_temp)
+		if u == nil {
+			err := user.Validate()
+			if err == nil {
+				err = user.GeneratePassword()
+				if err == nil {
+					err = s.store.User().Create(user)
+					if err == nil {
+						context.JSON(http.StatusOK, user)
+						return
+					}
+				}
+			}
 			s.logger.Error(err)
-			context.String(http.StatusNotFound, err.Error())
+			context.String(http.StatusBadRequest, err.Error())
+
 		} else {
-			context.JSON(http.StatusOK, user)
+			context.String(http.StatusBadRequest, "Пользователь с таким email уже существует")
 		}
 
 	})
