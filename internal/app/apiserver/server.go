@@ -71,4 +71,22 @@ func (s *server) configureRoute() {
 		}
 
 	})
+	s.router.POST("/user/login", func(context *gin.Context) {
+		user := &model.User{}
+		if err := context.BindJSON(&user); err != nil {
+			context.String(http.StatusBadRequest, err.Error())
+		}
+		temp_user := &model.User{
+			Email: user.Email,
+		}
+		u, err := s.store.User().Get(temp_user)
+		if u != nil {
+			if u.ComparePassword(user.Password) {
+				context.JSON(http.StatusOK, u)
+				return
+			}
+		}
+		s.logger.Error(err)
+		context.String(http.StatusBadRequest, "Неверно имя пользователя или пароль")
+	})
 }
