@@ -2,6 +2,7 @@ package jwt
 
 import (
 	"crypto/hmac"
+	"crypto/sha1"
 	"crypto/sha512"
 	b64 "encoding/base64"
 	"encoding/hex"
@@ -30,14 +31,30 @@ type TokenStructData struct {
 }
 
 type RefreshToken struct {
+	TimeToLive int
 }
 
 func (t *RefreshToken) Refresh() {
 
 }
 
-func (t *RefreshToken) Generate() {
+func (t *RefreshToken) Generate(u *model.User) string {
+	timeToLive := time.Now()
+	str := timeToLive.String() + u.ID.String()
+	strb64 := b64.URLEncoding.EncodeToString([]byte(str))
+	hasher := sha1.New()
+	hasher.Write([]byte(strb64))
+	sha := b64.URLEncoding.EncodeToString(hasher.Sum(nil))
+	return sha
+}
 
+func (t *AccessToken) liveTime(tokenStruct *TokenStructData) error {
+	now := time.Now()
+	correctTileLiveToken := tokenStruct.Payload.Time.Add(time.Minute * time.Duration(t.TimeToLive))
+	if now.After(correctTileLiveToken) {
+		return errors.New("time to ends")
+	}
+	return nil
 }
 
 func (t *AccessToken) Decode(token string) (TokenStructData, error) {
@@ -66,6 +83,10 @@ func (t *AccessToken) Decode(token string) (TokenStructData, error) {
 	hash, err := t.generateHash(tokenHeader)
 	if hash != token {
 		return TokenStructData{}, errors.New("Token not valide")
+	}
+	err = t.liveTime(tokenHeader)
+	if err != nil {
+		return TokenStructData{}, errors.New("Time live token ends")
 	}
 	return *tokenHeader, nil
 }
