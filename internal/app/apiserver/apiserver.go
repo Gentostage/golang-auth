@@ -18,12 +18,12 @@ func New(config *Config) *APIServer {
 }
 
 func (s *APIServer) Start() error {
-	store, err := mongostore.NewBD()
+	store, err := mongostore.NewBD(s.config.DataBaseUrl)
 	if err != nil {
 		return err
 	}
 	srv := newServer(*s.config, store)
 	err = srv.router.Run(s.config.BindAddr)
-
+	defer store.CloseDB()
 	return err
 }
