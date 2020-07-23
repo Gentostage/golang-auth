@@ -13,8 +13,8 @@ type Store struct {
 	tokenRepository *TokenRepository
 }
 
-func NewBD() (*Store, error) {
-	client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27017"))
+func NewBD(dataBaseUrl string) (*Store, error) {
+	client, err := mongo.NewClient(options.Client().ApplyURI(dataBaseUrl))
 	if err != nil {
 		return nil, err
 	}
@@ -34,12 +34,17 @@ func NewBD() (*Store, error) {
 	}, nil
 }
 
+func (s *Store) CloseDB() {
+	_ = s.db.Disconnect(context.TODO())
+}
+
 func (s *Store) User() store.UserRepository {
 	if s.userRepository != nil {
 		return s.userRepository
 	}
 	s.userRepository = &UserRepository{
-		store: s,
+		store:      s,
+		collection: s.db.Database("auth-go").Collection("users"),
 	}
 	return s.userRepository
 }
@@ -49,7 +54,8 @@ func (s *Store) Token() store.TokenRepository {
 		return s.tokenRepository
 	}
 	s.tokenRepository = &TokenRepository{
-		store: s,
+		store:      s,
+		collection: s.db.Database("auth-go").Collection("tokens"),
 	}
 	return s.tokenRepository
 }

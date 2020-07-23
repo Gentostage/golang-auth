@@ -1,2 +1,5 @@
 bind_addr = ":8080"
 log_level = "debug"
+
+
+data_base = "mongodb://localhost:27017"
