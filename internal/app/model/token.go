@@ -9,8 +9,9 @@ import (
 type Token struct {
 	ID           primitive.ObjectID `json:"id" bson:"_id,omitempty"`
 	RefreshToken string             `bson:"refresh_token,omitempty"`
-	TimeToLive   time.Time          `bson:"time_to_live,omitempty"`
+	RegisterTime time.Time          `bson:"time_to_live,omitempty"`
 	Alive        bool               `bson:"alive,omitempty"`
+	UserId       primitive.ObjectID `bson:"user_id"`
 }
 
 func (t *Token) GenerateHashToken(accsessToken string) error {

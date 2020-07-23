@@ -38,14 +38,14 @@ func (t *RefreshToken) Refresh() {
 
 }
 
-func (t *RefreshToken) Generate(u *model.User) string {
-	timeToLive := time.Now()
-	str := timeToLive.String() + u.ID.String()
+func (t *RefreshToken) Generate(u *model.User) (string, time.Time) {
+	createTime := time.Now()
+	str := createTime.String() + u.ID.String()
 	strb64 := b64.URLEncoding.EncodeToString([]byte(str))
 	hasher := sha1.New()
 	hasher.Write([]byte(strb64))
 	sha := b64.URLEncoding.EncodeToString(hasher.Sum(nil))
-	return sha
+	return sha, createTime
 }
 
 func (t *AccessToken) liveTime(tokenStruct *TokenStructData) error {
