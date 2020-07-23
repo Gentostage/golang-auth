@@ -8,7 +8,9 @@ type UserRepository interface {
 }
 
 type TokenRepository interface {
-	Create() error
+	Create(tokenRefresh *model.Token) error
+	Get(token *model.Token) (*model.Token, error)
 	Close() error
 	DeleteAll() error
+	DeleteOne() error
 }
