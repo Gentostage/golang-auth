@@ -1,6 +1,7 @@
 package model
 
 import (
+	"crypto/sha256"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.org/x/crypto/bcrypt"
 	"time"
@@ -16,7 +17,9 @@ type Token struct {
 
 func (t *Token) GenerateHashToken(accsessToken string) error {
 	token := accsessToken + t.RefreshToken
-	hashToken, err := bcrypt.GenerateFromPassword([]byte(token), bcrypt.DefaultCost)
+	tokenSha := sha256.New()
+	tokenSha.Write([]byte(token))
+	hashToken, err := bcrypt.GenerateFromPassword(tokenSha.Sum(nil), bcrypt.DefaultCost)
 	if err != nil {
 		return err
 	}
@@ -26,7 +29,10 @@ func (t *Token) GenerateHashToken(accsessToken string) error {
 
 func (t *Token) CompareTokens(refreshToken string, accsessToken string) error {
 	token := accsessToken + refreshToken
-	err := bcrypt.CompareHashAndPassword([]byte(t.RefreshToken), []byte(token))
+	tokenSha := sha256.New()
+	tokenSha.Write([]byte(token))
+
+	err := bcrypt.CompareHashAndPassword([]byte(t.RefreshToken), tokenSha.Sum(nil))
 	if err != nil {
 		return err
 	}

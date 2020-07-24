@@ -76,7 +76,7 @@ func TestRefreshToken_Generate(t *testing.T) {
 		Password: "12312321",
 	}
 	token := RefreshToken{}
-	hash := token.Generate(u)
+	hash, _ := token.Generate(u)
 	fmt.Println(hash)
 	assert.NotEmpty(t, hash)
 }

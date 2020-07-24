@@ -8,9 +8,10 @@ import (
 )
 
 type Store struct {
-	db              *mongo.Client
-	userRepository  *UserRepository
-	tokenRepository *TokenRepository
+	db                     *mongo.Client
+	userRepository         *UserRepository
+	tokenRepository        *TokenRepository
+	invalidTokenRepository *InvalidTokenRepository
 }
 
 func NewBD(dataBaseUrl string) (*Store, error) {
@@ -58,4 +59,15 @@ func (s *Store) Token() store.TokenRepository {
 		collection: s.db.Database("auth-go").Collection("tokens"),
 	}
 	return s.tokenRepository
+}
+
+func (s *Store) InvalidToken() store.InvalidTokenRepository {
+	if s.invalidTokenRepository != nil {
+		return s.invalidTokenRepository
+	}
+	s.invalidTokenRepository = &InvalidTokenRepository{
+		store:      s,
+		collection: s.db.Database("auth-go").Collection("invalid_tokens"),
+	}
+	return s.invalidTokenRepository
 }
