@@ -1,12 +1,12 @@
 package apiserver
 
 import (
+	"errors"
 	"fmt"
 	"github.com/Gentostage/golang-auth/internal/app/jwt"
 	"github.com/Gentostage/golang-auth/internal/app/model"
 	"github.com/Gentostage/golang-auth/internal/app/store"
 	"github.com/gin-gonic/gin"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
@@ -53,12 +53,17 @@ func (s *server) Middle() gin.HandlerFunc {
 			token = tokenHeader
 		}
 		if token != "" {
+			err := s.store.InvalidToken().Find(token)
+			if err != nil {
+				return
+			}
 			tokenStruct, err := s.access.Decode(token)
 			if err != nil {
-				context.AbortWithStatus(http.StatusUnauthorized)
+				context.Set("token_struct", tokenStruct)
 				return
 			}
 			context.Set("user_id", tokenStruct.Payload.User)
+			context.Set("token_struct", tokenStruct)
 			fmt.Println(tokenStruct)
 		}
 	}
@@ -83,8 +88,8 @@ func (s *server) configureRoute() {
 		} else {
 			context.JSON(http.StatusOK, user)
 		}
-
 	})
+
 	s.router.POST("/user/create", func(context *gin.Context) {
 		user := &model.User{}
 		if err := context.BindJSON(&user); err != nil {
@@ -131,6 +136,7 @@ func (s *server) configureRoute() {
 					context.String(http.StatusInternalServerError, err.Error())
 					return
 				}
+
 				refreshToken, createTime := s.refresh.Generate(u)
 				modelToken := &model.Token{
 					UserId:       u.ID,
@@ -161,6 +167,23 @@ func (s *server) configureRoute() {
 		s.logger.Error(err)
 		context.String(http.StatusBadRequest, "Неверно имя пользователя или пароль")
 	})
+
+	s.router.POST("/user/logout", func(context *gin.Context) {
+		token, _ := context.Cookie("Access_Token")
+		tokenHeader := context.Request.Header.Get("X-Auth-Token")
+
+		if tokenHeader != "" {
+			token = tokenHeader
+		}
+		if token != "" {
+			err := s.store.InvalidToken().Insert(token)
+			if err != nil {
+				context.String(http.StatusBadRequest, err.Error())
+			}
+		}
+		context.Status(http.StatusOK)
+	})
+
 	s.router.POST("/token/refresh", func(context *gin.Context) {
 		token := &struct {
 			AccessToken  string `json:"access_token"`
@@ -170,30 +193,33 @@ func (s *server) configureRoute() {
 			context.String(http.StatusBadRequest, err.Error())
 			return
 		}
-		userId, exist := context.Get("user_id")
-		if !exist {
-			err := errors.New("Ошибка доступа")
-			context.String(http.StatusUnauthorized, err.Error())
-			return
-		}
-
+		tokenStruct, _ := context.Get("token_struct")
+		tokenData := tokenStruct.(jwt.TokenStructData)
 		tokenModel := model.Token{
-			UserId: userId.(primitive.ObjectID),
+			UserId: tokenData.Payload.User,
 			Alive:  true,
 		}
-		tokenBase, err := s.store.Token().Get(&tokenModel)
+
+		tokenResult, err := s.store.Token().GetAllAliveTokensByUser(&tokenModel)
 		if err != nil {
 			context.String(http.StatusUnauthorized, err.Error())
 			return
 		}
-
-		err = tokenBase.CompareTokens(token.RefreshToken, token.AccessToken)
-		if err != nil {
-			context.String(http.StatusInternalServerError, err.Error())
+		var validToken *model.Token
+		for _, r := range tokenResult {
+			err = r.CompareTokens(token.RefreshToken, token.AccessToken)
+			if err == nil {
+				validToken = r
+				s.logger.Info(validToken)
+				break
+			}
+		}
+		if validToken == nil {
+			context.String(http.StatusForbidden, errors.New("Доступ запрещен ").Error())
 			return
 		}
-
-		user, err := s.store.User().Get(&model.User{ID: tokenBase.UserId})
+		err = s.store.Token().Close(validToken)
+		user, err := s.store.User().Get(&model.User{ID: validToken.UserId})
 		if err != nil {
 			context.String(http.StatusInternalServerError, err.Error())
 			return
@@ -209,7 +235,7 @@ func (s *server) configureRoute() {
 			ID:           primitive.ObjectID{},
 			RefreshToken: token.RefreshToken,
 			RegisterTime: timeCreate,
-			Alive:        false,
+			Alive:        true,
 			UserId:       user.ID,
 		}
 		err = tokenModel.GenerateHashToken(token.AccessToken)

@@ -82,11 +82,11 @@ func (t *AccessToken) Decode(token string) (TokenStructData, error) {
 	}
 	hash, err := t.generateHash(tokenHeader)
 	if hash != token {
-		return TokenStructData{}, errors.New("Token not valide")
+		return TokenStructData{}, errors.New("Token not valid ")
 	}
 	err = t.liveTime(tokenHeader)
 	if err != nil {
-		return TokenStructData{}, errors.New("Time live token ends")
+		return *tokenHeader, errors.New("Time live token ends ")
 	}
 	return *tokenHeader, nil
 }

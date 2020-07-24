@@ -10,7 +10,13 @@ type UserRepository interface {
 type TokenRepository interface {
 	Create(tokenRefresh *model.Token) error
 	Get(token *model.Token) (*model.Token, error)
-	Close() error
-	DeleteAll() error
-	DeleteOne() error
+	GetAllAliveTokensByUser(token *model.Token) ([]*model.Token, error)
+	Close(token *model.Token) error
+	DeleteAll(token *model.Token) error
+	DeleteOne(token *model.Token) error
+}
+
+type InvalidTokenRepository interface {
+	Find(token string) error
+	Insert(token string) error
 }

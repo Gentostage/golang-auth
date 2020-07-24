@@ -32,6 +32,27 @@ func (t *TokenRepository) Get(token *model.Token) (*model.Token, error) {
 	return tokenBase, nil
 }
 
+func (t *TokenRepository) GetAllAliveTokensByUser(token *model.Token) ([]*model.Token, error) {
+	var doc []*model.Token
+	tokenStorage := t.collection
+	tokenResult, err := tokenStorage.Find(context.TODO(), token)
+
+	if tokenResult != nil {
+		for tokenResult.Next(context.TODO()) {
+			var el model.Token
+			err = tokenResult.Decode(&el)
+			if err != nil {
+				return nil, err
+			}
+			doc = append(doc, &el)
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+	return doc, nil
+}
+
 func (t *TokenRepository) Close(token *model.Token) error {
 	update := bson.M{}
 	_ = json.Unmarshal([]byte(`{ "$set": {"alive": false}}`), &update)
