@@ -280,4 +280,23 @@ func (s *server) configureRoute() {
 		}
 		context.String(http.StatusBadRequest, "Token not found")
 	})
+
+	s.router.DELETE("/token/delete/all", func(context *gin.Context) {
+		userId := &struct {
+			UserId primitive.ObjectID `json:"user_id"`
+		}{}
+		if err := context.BindJSON(&userId); err != nil {
+			context.String(http.StatusBadRequest, err.Error())
+			return
+		}
+
+		token := model.Token{UserId: userId.UserId}
+		err := s.store.Token().DeleteAll(&token)
+		if err != nil {
+			context.String(http.StatusBadRequest, "Can not be deleted")
+			s.logger.Error(err.Error())
+			return
+		}
+		context.Status(http.StatusOK)
+	})
 }
