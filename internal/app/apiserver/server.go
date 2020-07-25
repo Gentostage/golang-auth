@@ -139,10 +139,10 @@ func (s *server) configureRoute() {
 
 				refreshToken, createTime := s.refresh.Generate(u)
 				modelToken := &model.Token{
-					UserId:       u.ID,
-					RefreshToken: refreshToken,
-					RegisterTime: createTime,
-					Alive:        true,
+					UserId:             u.ID,
+					AccessRefreshToken: refreshToken,
+					RegisterTime:       createTime,
+					Alive:              true,
 				}
 				err = modelToken.GenerateHashToken(token)
 				if err != nil {
@@ -232,11 +232,11 @@ func (s *server) configureRoute() {
 		var timeCreate time.Time
 		token.RefreshToken, timeCreate = s.refresh.Generate(user)
 		tokenModel = model.Token{
-			ID:           primitive.ObjectID{},
-			RefreshToken: token.RefreshToken,
-			RegisterTime: timeCreate,
-			Alive:        true,
-			UserId:       user.ID,
+			ID:                 primitive.ObjectID{},
+			AccessRefreshToken: token.RefreshToken,
+			RegisterTime:       timeCreate,
+			Alive:              true,
+			UserId:             user.ID,
 		}
 		err = tokenModel.GenerateHashToken(token.AccessToken)
 		if err != nil {
@@ -251,4 +251,33 @@ func (s *server) configureRoute() {
 		context.JSON(http.StatusOK, token)
 	})
 
+	s.router.DELETE("/token/delete", func(context *gin.Context) {
+		token := &struct {
+			RefreshToken string `json:"refresh_token"`
+		}{}
+		if err := context.BindJSON(&token); err != nil {
+			context.String(http.StatusBadRequest, err.Error())
+			return
+		}
+		tokenResult, err := s.store.Token().GetAllTokens()
+		if err != nil {
+			context.String(http.StatusBadRequest, err.Error())
+		}
+
+		for _, r := range tokenResult {
+			err = r.CompareRefreshToken(token.RefreshToken)
+			if err == nil {
+				s.logger.Info(r)
+				err = s.store.Token().DeleteOne(r)
+				if err != nil {
+					context.String(http.StatusBadRequest, "Can not be deleted")
+					s.logger.Error(err.Error())
+					return
+				}
+				context.Status(http.StatusOK)
+				return
+			}
+		}
+		context.String(http.StatusBadRequest, "Token not found")
+	})
 }
