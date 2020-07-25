@@ -15,7 +15,7 @@ type TokenRepository struct {
 
 func (t *TokenRepository) Create(tokenRefresh *model.Token) error {
 	tokenStorage := t.collection
-	_, err := tokenStorage.InsertOne(context.TODO(), &tokenRefresh)
+	_, err := tokenStorage.InsertOne(context.Background(), &tokenRefresh)
 	if err != nil {
 		return err
 	}
@@ -36,7 +36,9 @@ func (t *TokenRepository) GetAllAliveTokensByUser(token *model.Token) ([]*model.
 	var doc []*model.Token
 	tokenStorage := t.collection
 	tokenResult, err := tokenStorage.Find(context.TODO(), token)
-
+	if err != nil {
+		return nil, err
+	}
 	if tokenResult != nil {
 		for tokenResult.Next(context.TODO()) {
 			var el model.Token
@@ -47,9 +49,28 @@ func (t *TokenRepository) GetAllAliveTokensByUser(token *model.Token) ([]*model.
 			doc = append(doc, &el)
 		}
 	}
+
+	return doc, nil
+}
+
+func (t *TokenRepository) GetAllTokens() ([]*model.Token, error) {
+	var doc []*model.Token
+	tokenStorage := t.collection
+	tokenResult, err := tokenStorage.Find(context.TODO(), bson.D{})
 	if err != nil {
 		return nil, err
 	}
+	if tokenResult != nil {
+		for tokenResult.Next(context.TODO()) {
+			var el model.Token
+			err = tokenResult.Decode(&el)
+			if err != nil {
+				return nil, err
+			}
+			doc = append(doc, &el)
+		}
+	}
+
 	return doc, nil
 }
 

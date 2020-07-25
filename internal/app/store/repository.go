@@ -11,6 +11,7 @@ type TokenRepository interface {
 	Create(tokenRefresh *model.Token) error
 	Get(token *model.Token) (*model.Token, error)
 	GetAllAliveTokensByUser(token *model.Token) ([]*model.Token, error)
+	GetAllTokens() ([]*model.Token, error)
 	Close(token *model.Token) error
 	DeleteAll(token *model.Token) error
 	DeleteOne(token *model.Token) error
